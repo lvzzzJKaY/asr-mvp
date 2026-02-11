@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>构音障碍个性化 ASR MVP</title>
+  <style>
+    :root {
+      --bg-a: #f6f8d5;
+      --bg-b: #b0d9f8;
+      --card: rgba(255, 255, 255, 0.86);
+      --ink: #152238;
+      --soft: #4b5f79;
+      --accent: #ff5f45;
+      --accent-2: #1178ff;
+      --ok: #1f9e58;
+      --line: rgba(21, 34, 56, 0.12);
+      --shadow: 0 18px 50px rgba(17, 42, 84, 0.12);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 360px at -10% -10%, rgba(255, 95, 69, 0.35), transparent 70%),
+        radial-gradient(860px 300px at 110% 10%, rgba(17, 120, 255, 0.28), transparent 72%),
+        linear-gradient(135deg, var(--bg-a), var(--bg-b));
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .shell {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 22px 20px;
+      margin-bottom: 14px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55));
+      box-shadow: var(--shadow);
+      animation: rise 480ms ease;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(22px, 3.8vw, 36px);
+      letter-spacing: 0.5px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--soft);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+
+    .card {
+      grid-column: span 12;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      animation: rise 380ms ease both;
+    }
+
+    .card:nth-child(2) { animation-delay: 40ms; }
+    .card:nth-child(3) { animation-delay: 80ms; }
+    .card:nth-child(4) { animation-delay: 120ms; }
+    .card:nth-child(5) { animation-delay: 160ms; }
+
+    @media (min-width: 980px) {
+      .left { grid-column: span 7; }
+      .right { grid-column: span 5; }
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 820px) {
+      .row { grid-template-columns: 1fr; }
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--soft);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: rgba(17, 120, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(17, 120, 255, 0.12);
+    }
+
+    textarea { min-height: 94px; resize: vertical; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: #fff;
+      background: linear-gradient(120deg, var(--accent), #ff8b2c);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button.secondary {
+      background: linear-gradient(120deg, var(--accent-2), #21a0ff);
+    }
+
+    button.ghost {
+      color: var(--ink);
+      background: #f0f4fa;
+      border: 1px solid var(--line);
+      font-weight: 500;
+    }
+
+    button.ok {
+      background: linear-gradient(120deg, #159c53, #34b96f);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      filter: grayscale(0.25);
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
+
+    .muted {
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #97a5b6;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .status-dot.live {
+      background: #fa4f4f;
+      box-shadow: 0 0 0 6px rgba(250, 79, 79, 0.17);
+      animation: pulse 950ms infinite;
+    }
+
+    .candidate-list {
+      margin: 10px 0 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .candidate-item {
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 9px 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .candidate-item input {
+      width: auto;
+      margin-top: 3px;
+    }
+
+    pre {
+      margin: 10px 0 0;
+      padding: 10px;
+      max-height: 220px;
+      overflow: auto;
+      border-radius: 10px;
+      background: #0d1b2a;
+      color: #d6e9ff;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(9px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(250, 79, 79, 0.3); }
+      80% { box-shadow: 0 0 0 8px rgba(250, 79, 79, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(250, 79, 79, 0); }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>构音障碍个性化 ASR MVP</h1>
+      <p>训练短语、上传/录音识别、候选确认回写、短语板维护，全流程连通 FastAPI。</p>
+    </section>
+
+    <div class="grid">
+      <section class="card left">
+        <h2>基础配置</h2>
+        <div class="row">
+          <div>
+            <label for="apiBase">API Base URL</label>
+            <input id="apiBase" value="http://127.0.0.1:8000" />
+          </div>
+          <div>
+            <label for="profileId">Profile ID</label>
+            <input id="profileId" value="u1" />
+          </div>
+        </div>
+      </section>
+
+      <section class="card left">
+        <h2>训练短语（P0）</h2>
+        <label for="trainPhrases">每行一条短句</label>
+        <textarea id="trainPhrases" placeholder="我想预约明天下午门诊&#10;我对青霉素过敏"></textarea>
+        <div class="row">
+          <div>
+            <label for="trainScene">场景</label>
+            <select id="trainScene">
+              <option value="">不写入短语板</option>
+              <option value="medical">medical</option>
+              <option value="travel">travel</option>
+              <option value="family">family</option>
+              <option value="custom">custom</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btnTrain">提交训练</button>
+        </div>
+        <pre id="trainOut"></pre>
+      </section>
+
+      <section class="card right">
+        <h2>识别（上传/录音）</h2>
+        <div>
+          <label for="audioFile">上传音频</label>
+          <input id="audioFile" type="file" accept="audio/*" />
+        </div>
+        <div style="margin-top:8px;">
+          <label for="asrModel">识别模式</label>
+          <select id="asrModel">
+            <option value="iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch">高精度（推荐）</option>
+            <option value="iic/speech_paraformer-tiny-commandword_asr_nat-zh-cn-16k-vocab544-pytorch">快速（低精度）</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button id="btnUploadAsr" class="secondary">上传并识别</button>
+          <button id="btnStartRec" class="ghost">
+            <span id="recordDot" class="status-dot"></span>开始录音
+          </button>
+          <button id="btnStopRec" class="ghost" disabled>停止录音</button>
+          <button id="btnRecAsr" class="secondary" disabled>识别录音</button>
+        </div>
+        <p class="muted">录音通过浏览器麦克风，结束后可直接识别。</p>
+
+        <label for="mockText">快速演示（mock_text）</label>
+        <input id="mockText" placeholder="例如：我想要预约明天下午门诊" />
+        <div class="actions">
+          <button id="btnMockAsr" class="secondary">Mock 识别</button>
+        </div>
+
+        <h2 style="margin-top:14px;">候选确认（P0）</h2>
+        <div id="candidateList" class="candidate-list"></div>
+        <div class="actions">
+          <button id="btnConfirm" class="ok" disabled>确认并回写</button>
+        </div>
+        <pre id="asrOut"></pre>
+      </section>
+
+      <section class="card left">
+        <h2>短语板</h2>
+        <div class="row">
+          <div>
+            <label for="pbScene">场景</label>
+            <select id="pbScene">
+              <option value="">全部</option>
+              <option value="medical">medical</option>
+              <option value="travel">travel</option>
+              <option value="family">family</option>
+              <option value="custom">custom</option>
+            </select>
+          </div>
+          <div>
+            <label for="pbAddText">新增短语</label>
+            <input id="pbAddText" placeholder="输入要添加的短语" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btnPbLoad" class="ghost">刷新短语板</button>
+          <button id="btnPbAdd">新增短语</button>
+        </div>
+        <pre id="pbOut"></pre>
+      </section>
+
+      <section class="card right">
+        <h2>服务日志</h2>
+        <p class="muted">用于查看最近一次请求返回，便于调试。</p>
+        <pre id="logOut"></pre>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      mediaRecorder: null,
+      chunks: [],
+      recordedBlob: null,
+      lastRecognized: "",
+      lastCandidates: [],
+      selectedCandidate: "",
+    };
+
+    function apiBase() {
+      return $("apiBase").value.trim().replace(/\/+$/, "");
+    }
+
+    function profileId() {
+      return $("profileId").value.trim();
+    }
+
+    function selectedModel() {
+      return $("asrModel")?.value?.trim()
+        || "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch";
+    }
+
+    function log(obj) {
+      const value = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+      $("logOut").textContent = value;
+    }
+
+    function setPre(id, obj) {
+      $(id).textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    async function req(path, options = {}) {
+      const res = await fetch(`${apiBase()}${path}`, options);
+      const text = await res.text();
+      let body = text;
+      try { body = JSON.parse(text); } catch (_) {}
+      if (!res.ok) {
+        log(body);
+        throw new Error(`HTTP ${res.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+      }
+      log(body);
+      return body;
+    }
+
+    function renderCandidates(candidates) {
+      const root = $("candidateList");
+      root.innerHTML = "";
+      if (!candidates || candidates.length === 0) {
+        $("btnConfirm").disabled = true;
+        return;
+      }
+      candidates.forEach((c, i) => {
+        const wrap = document.createElement("label");
+        wrap.className = "candidate-item";
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "cand";
+        radio.value = c;
+        if (i === 0) {
+          radio.checked = true;
+          state.selectedCandidate = c;
+        }
+        radio.addEventListener("change", () => {
+          state.selectedCandidate = radio.value;
+        });
+        const txt = document.createElement("div");
+        txt.textContent = c;
+        wrap.appendChild(radio);
+        wrap.appendChild(txt);
+        root.appendChild(wrap);
+      });
+      $("btnConfirm").disabled = false;
+    }
+
+    async function handleTrain() {
+      const phrases = $("trainPhrases").value
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean);
+      if (!profileId() || phrases.length === 0) {
+        alert("请填写 profile id 并至少输入一条短语。");
+        return;
+      }
+      const scene = $("trainScene").value || null;
+      const body = await req("/train", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: profileId(), phrases, scene }),
+      });
+      setPre("trainOut", body);
+    }
+
+    async function handleTranscribeMock() {
+      const mockText = $("mockText").value.trim();
+      if (!mockText) {
+        alert("请输入 mock_text。");
+        return;
+      }
+      const body = await req("/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile_id: profileId(),
+          mock_text: mockText,
+          model: selectedModel(),
+          topk: 3,
+        }),
+      });
+      state.lastRecognized = body.recognized_text || "";
+      state.lastCandidates = body.candidates || [];
+      renderCandidates(state.lastCandidates);
+      setPre("asrOut", body);
+    }
+
+    async function handleTranscribeUpload(file) {
+      if (!file) {
+        alert("请先选择音频文件。");
+        return;
+      }
+      $("btnUploadAsr").disabled = true;
+      setPre("asrOut", "正在上传并识别...\n首次真实识别会下载/加载模型，可能需要 1-10 分钟，请勿重复点击。");
+      const form = new FormData();
+      form.append("file", file, file.name || "audio.webm");
+      const base = `${apiBase()}/transcribe-upload?profile_id=${encodeURIComponent(profileId())}&model=${encodeURIComponent(selectedModel())}&topk=3`;
+      try {
+        const res = await fetch(base, { method: "POST", body: form });
+        const txt = await res.text();
+        let body = txt;
+        try { body = JSON.parse(txt); } catch (_) {}
+        if (!res.ok) {
+          log(body);
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        log(body);
+        state.lastRecognized = body.recognized_text || "";
+        state.lastCandidates = body.candidates || [];
+        renderCandidates(state.lastCandidates);
+        setPre("asrOut", body);
+      } finally {
+        $("btnUploadAsr").disabled = false;
+      }
+    }
+
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.chunks = [];
+      state.recordedBlob = null;
+      state.mediaRecorder = new MediaRecorder(stream);
+      state.mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) state.chunks.push(e.data);
+      };
+      state.mediaRecorder.onstop = () => {
+        state.recordedBlob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
+        $("btnRecAsr").disabled = false;
+        $("recordDot").classList.remove("live");
+      };
+      state.mediaRecorder.start();
+      $("btnStartRec").disabled = true;
+      $("btnStopRec").disabled = false;
+      $("recordDot").classList.add("live");
+    }
+
+    function stopRecording() {
+      if (!state.mediaRecorder) return;
+      state.mediaRecorder.stop();
+      state.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+      $("btnStartRec").disabled = false;
+      $("btnStopRec").disabled = true;
+    }
+
+    async function handleConfirm() {
+      if (!state.lastRecognized || !state.selectedCandidate) {
+        alert("请先完成识别并选择候选文本。");
+        return;
+      }
+      const body = await req("/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile_id: profileId(),
+          recognized: state.lastRecognized,
+          chosen: state.selectedCandidate,
+        }),
+      });
+      setPre("asrOut", body);
+    }
+
+    async function loadPhraseboard() {
+      const scene = $("pbScene").value;
+      const q = scene
+        ? `?profile_id=${encodeURIComponent(profileId())}&scene=${encodeURIComponent(scene)}`
+        : `?profile_id=${encodeURIComponent(profileId())}`;
+      const body = await req(`/phraseboard${q}`);
+      setPre("pbOut", body);
+    }
+
+    async function addPhraseboard() {
+      const text = $("pbAddText").value.trim();
+      if (!text) {
+        alert("请输入短语。");
+        return;
+      }
+      const scene = $("pbScene").value || "custom";
+      const body = await req("/phraseboard/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile_id: profileId(),
+          scene,
+          text,
+        }),
+      });
+      setPre("pbOut", body);
+    }
+
+    $("btnTrain").addEventListener("click", () => handleTrain().catch((e) => alert(e.message)));
+    $("btnMockAsr").addEventListener("click", () => handleTranscribeMock().catch((e) => alert(e.message)));
+    $("btnUploadAsr").addEventListener("click", () => {
+      const f = $("audioFile").files?.[0];
+      handleTranscribeUpload(f).catch((e) => alert(e.message));
+    });
+    $("btnStartRec").addEventListener("click", () => startRecording().catch((e) => alert(`录音失败: ${e.message}`)));
+    $("btnStopRec").addEventListener("click", stopRecording);
+    $("btnRecAsr").addEventListener("click", () => {
+      if (!state.recordedBlob) {
+        alert("请先录音。");
+        return;
+      }
+      const file = new File([state.recordedBlob], "record.webm", { type: state.recordedBlob.type || "audio/webm" });
+      handleTranscribeUpload(file).catch((e) => alert(e.message));
+    });
+    $("btnConfirm").addEventListener("click", () => handleConfirm().catch((e) => alert(e.message)));
+    $("btnPbLoad").addEventListener("click", () => loadPhraseboard().catch((e) => alert(e.message)));
+    $("btnPbAdd").addEventListener("click", () => addPhraseboard().catch((e) => alert(e.message)));
+  </script>
+</body>
+</html>
