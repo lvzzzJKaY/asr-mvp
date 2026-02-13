@@ -3,357 +3,303 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>构音障碍个性化 ASR MVP</title>
+  <title>原音 | 在线语音复述</title>
   <style>
     :root {
-      --bg-a: #f6f8d5;
-      --bg-b: #b0d9f8;
-      --card: rgba(255, 255, 255, 0.86);
-      --ink: #152238;
-      --soft: #4b5f79;
-      --accent: #ff5f45;
-      --accent-2: #1178ff;
-      --ok: #1f9e58;
-      --line: rgba(21, 34, 56, 0.12);
-      --shadow: 0 18px 50px rgba(17, 42, 84, 0.12);
-      --radius: 16px;
+      --bg-a: #f3f8ff;
+      --bg-b: #e7f2ff;
+      --ink: #0d1b2a;
+      --muted: #5b6c84;
+      --line: #d8e3f0;
+      --card: rgba(255, 255, 255, 0.9);
+      --brand: #1167ff;
+      --brand-2: #2a8dff;
+      --accent: #ff7b3d;
+      --ok: #198754;
+      --warn: #c46900;
+      --danger: #c73b4b;
+      --shadow: 0 14px 36px rgba(17, 46, 91, 0.12);
+      --radius: 18px;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(1000px 360px at -10% -10%, rgba(255, 95, 69, 0.35), transparent 70%),
-        radial-gradient(860px 300px at 110% 10%, rgba(17, 120, 255, 0.28), transparent 72%),
-        linear-gradient(135deg, var(--bg-a), var(--bg-b));
       min-height: 100vh;
-      padding: 18px;
+      color: var(--ink);
+      font-family: "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(900px 320px at -10% -20%, rgba(17, 103, 255, 0.18), transparent 72%),
+        radial-gradient(760px 320px at 120% -10%, rgba(255, 123, 61, 0.16), transparent 70%),
+        linear-gradient(140deg, var(--bg-a), var(--bg-b));
+      padding: 20px 16px 28px;
     }
 
-    .shell {
-      max-width: 1100px;
+    .app {
+      max-width: 980px;
       margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+      padding: 16px;
     }
 
     .hero {
-      padding: 22px 20px;
-      margin-bottom: 14px;
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      background:
-        linear-gradient(120deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55));
-      box-shadow: var(--shadow);
-      animation: rise 480ms ease;
+      padding: 20px;
+      background: linear-gradient(140deg, rgba(255, 255, 255, 0.94), rgba(247, 252, 255, 0.88));
     }
 
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: clamp(22px, 3.8vw, 36px);
-      letter-spacing: 0.5px;
-    }
-
-    .hero p {
+    h1 {
       margin: 0;
-      color: var(--soft);
+      font-size: clamp(28px, 4.4vw, 46px);
+      letter-spacing: 0.3px;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
       font-size: 14px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 12px;
-    }
-
-    .card {
-      grid-column: span 12;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 14px;
-      box-shadow: var(--shadow);
-      animation: rise 380ms ease both;
-    }
-
-    .card:nth-child(2) { animation-delay: 40ms; }
-    .card:nth-child(3) { animation-delay: 80ms; }
-    .card:nth-child(4) { animation-delay: 120ms; }
-    .card:nth-child(5) { animation-delay: 160ms; }
-
-    @media (min-width: 980px) {
-      .left { grid-column: span 7; }
-      .right { grid-column: span 5; }
-    }
-
-    .row {
-      display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
-    @media (max-width: 820px) {
-      .row { grid-template-columns: 1fr; }
-    }
-
-    h2 {
-      margin: 0 0 10px;
-      font-size: 16px;
-      letter-spacing: 0.2px;
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
     }
 
     label {
-      font-size: 12px;
-      color: var(--soft);
       display: block;
-      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
     }
 
-    input, textarea, select {
+    input, textarea {
       width: 100%;
-      border-radius: 10px;
       border: 1px solid var(--line);
+      border-radius: 12px;
       background: #fff;
       color: var(--ink);
-      padding: 10px 12px;
+      padding: 11px 12px;
       font-size: 14px;
       outline: none;
-      transition: border-color 120ms ease, box-shadow 120ms ease;
+      transition: box-shadow 0.14s ease, border-color 0.14s ease;
     }
 
-    input:focus, textarea:focus, select:focus {
-      border-color: rgba(17, 120, 255, 0.5);
-      box-shadow: 0 0 0 3px rgba(17, 120, 255, 0.12);
+    textarea {
+      min-height: 210px;
+      resize: vertical;
+      font-size: 18px;
+      line-height: 1.6;
     }
 
-    textarea { min-height: 94px; resize: vertical; }
+    input:focus, textarea:focus {
+      border-color: rgba(17, 103, 255, 0.55);
+      box-shadow: 0 0 0 4px rgba(17, 103, 255, 0.12);
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--danger); }
 
     .actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
+      gap: 10px;
+      margin-top: 12px;
     }
 
     button {
       border: none;
       border-radius: 999px;
-      padding: 10px 14px;
-      color: #fff;
-      background: linear-gradient(120deg, var(--accent), #ff8b2c);
-      font-weight: 600;
-      font-size: 13px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 700;
       cursor: pointer;
-      transition: transform 120ms ease, filter 120ms ease;
+      color: #fff;
+      background: linear-gradient(115deg, var(--brand), var(--brand-2));
+      transition: transform 0.12s ease, filter 0.12s ease;
     }
 
-    button.secondary {
-      background: linear-gradient(120deg, var(--accent-2), #21a0ff);
-    }
-
-    button.ghost {
-      color: var(--ink);
-      background: #f0f4fa;
-      border: 1px solid var(--line);
-      font-weight: 500;
-    }
-
-    button.ok {
-      background: linear-gradient(120deg, #159c53, #34b96f);
-    }
-
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      filter: grayscale(0.25);
-    }
-
-    button:not(:disabled):hover {
+    button:hover:not(:disabled) {
       transform: translateY(-1px);
       filter: brightness(1.03);
     }
 
-    .muted {
-      color: var(--soft);
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: #f2f6fc;
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+
+    button.accent {
+      background: linear-gradient(120deg, var(--accent), #ff9e67);
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
       font-size: 12px;
     }
 
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #97a5b6;
-      display: inline-block;
-      margin-right: 6px;
-      vertical-align: middle;
+    .banner {
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      font-size: 13px;
+      display: none;
     }
 
-    .status-dot.live {
-      background: #fa4f4f;
-      box-shadow: 0 0 0 6px rgba(250, 79, 79, 0.17);
-      animation: pulse 950ms infinite;
+    .banner.ok {
+      display: block;
+      color: #0a5a35;
+      background: #e6f8ef;
+      border: 1px solid #b9e8d0;
     }
 
-    .candidate-list {
-      margin: 10px 0 0;
+    .banner.warn {
+      display: block;
+      color: #7a4500;
+      background: #fff4df;
+      border: 1px solid #ffd79a;
+    }
+
+    .banner.bad {
+      display: block;
+      color: #7d1c2b;
+      background: #ffe9ee;
+      border: 1px solid #ffc4cf;
+    }
+
+    .candidate-wrap {
+      margin-top: 12px;
       display: grid;
       gap: 8px;
+      max-height: 220px;
+      overflow: auto;
     }
 
-    .candidate-item {
-      border-radius: 10px;
-      border: 1px solid var(--line);
+    .candidate {
       background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
       padding: 9px 10px;
       display: flex;
-      align-items: flex-start;
       gap: 8px;
+      align-items: flex-start;
     }
 
-    .candidate-item input {
+    .candidate input {
       width: auto;
       margin-top: 3px;
     }
 
+    audio {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    details {
+      margin-top: 12px;
+      border-top: 1px dashed var(--line);
+      padding-top: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      user-select: none;
+    }
+
     pre {
-      margin: 10px 0 0;
-      padding: 10px;
-      max-height: 220px;
-      overflow: auto;
+      margin: 8px 0 0;
       border-radius: 10px;
-      background: #0d1b2a;
-      color: #d6e9ff;
+      background: #0f1f34;
+      color: #d0e3ff;
       font-size: 12px;
-      line-height: 1.4;
-    }
-
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(9px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(250, 79, 79, 0.3); }
-      80% { box-shadow: 0 0 0 8px rgba(250, 79, 79, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(250, 79, 79, 0); }
+      padding: 10px;
+      max-height: 230px;
+      overflow: auto;
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="hero">
-      <h1>构音障碍个性化 ASR MVP</h1>
-      <p>训练短语、上传/录音识别、候选确认回写、短语板维护，全流程连通 FastAPI。</p>
+  <main class="app">
+    <section class="card hero">
+      <h1>原音</h1>
+      <p class="subtitle">一键语音输入，一键复述输出。高审美、简洁、可直接给真实用户使用。</p>
     </section>
 
-    <div class="grid">
-      <section class="card left">
-        <h2>基础配置</h2>
-        <div class="row">
+    <section class="card">
+      <div id="cfgStatus" class="status">正在读取服务状态...</div>
+      <details>
+        <summary>高级设置（管理员）</summary>
+        <div class="grid" style="margin-top:10px;">
           <div>
             <label for="apiBase">API Base URL</label>
-            <input id="apiBase" value="http://127.0.0.1:8000" />
+            <input id="apiBase" value="" />
           </div>
           <div>
             <label for="profileId">Profile ID</label>
-            <input id="profileId" value="u1" />
+            <input id="profileId" value="guest" />
           </div>
         </div>
-      </section>
+      </details>
+    </section>
 
-      <section class="card left">
-        <h2>训练短语（P0）</h2>
-        <label for="trainPhrases">每行一条短句</label>
-        <textarea id="trainPhrases" placeholder="我想预约明天下午门诊&#10;我对青霉素过敏"></textarea>
-        <div class="row">
-          <div>
-            <label for="trainScene">场景</label>
-            <select id="trainScene">
-              <option value="">不写入短语板</option>
-              <option value="medical">medical</option>
-              <option value="travel">travel</option>
-              <option value="family">family</option>
-              <option value="custom">custom</option>
-            </select>
-          </div>
-        </div>
-        <div class="actions">
-          <button id="btnTrain">提交训练</button>
-        </div>
-        <pre id="trainOut"></pre>
-      </section>
+    <section class="card">
+      <label for="audioFile">上传音频（备选入口）</label>
+      <input id="audioFile" type="file" accept="audio/*" />
 
-      <section class="card right">
-        <h2>识别（上传/录音）</h2>
-        <div>
-          <label for="audioFile">上传音频</label>
-          <input id="audioFile" type="file" accept="audio/*" />
-        </div>
-        <div style="margin-top:8px;">
-          <label for="asrModel">识别模式</label>
-          <select id="asrModel">
-            <option value="iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch">高精度（推荐）</option>
-            <option value="iic/speech_paraformer-tiny-commandword_asr_nat-zh-cn-16k-vocab544-pytorch">快速（低精度）</option>
-          </select>
-        </div>
-        <div class="actions">
-          <button id="btnUploadAsr" class="secondary">上传并识别</button>
-          <button id="btnStartRec" class="ghost">
-            <span id="recordDot" class="status-dot"></span>开始录音
-          </button>
-          <button id="btnStopRec" class="ghost" disabled>停止录音</button>
-          <button id="btnRecAsr" class="secondary" disabled>识别录音</button>
-        </div>
-        <p class="muted">录音通过浏览器麦克风，结束后可直接识别。</p>
+      <div class="actions">
+        <button id="btnMicPrimary" class="accent">开始说话</button>
+        <button id="btnFilePrimary">上传音频极速复述</button>
+        <button id="btnWarmup" class="secondary">首次调用预热</button>
+      </div>
 
-        <label for="mockText">快速演示（mock_text）</label>
-        <input id="mockText" placeholder="例如：我想要预约明天下午门诊" />
-        <div class="actions">
-          <button id="btnMockAsr" class="secondary">Mock 识别</button>
-        </div>
+      <div class="hint">主流程：先点“开始说话”，说完后再点一次“结束并生成复述”。默认开箱即用，无需手动配置。</div>
+      <div id="notice" class="banner"></div>
 
-        <h2 style="margin-top:14px;">候选确认（P0）</h2>
-        <div id="candidateList" class="candidate-list"></div>
-        <div class="actions">
-          <button id="btnConfirm" class="ok" disabled>确认并回写</button>
-        </div>
-        <pre id="asrOut"></pre>
-      </section>
+      <label for="recognizedText" style="margin-top:12px;">识别结果</label>
+      <textarea id="recognizedText" readonly placeholder="识别文本会显示在这里"></textarea>
 
-      <section class="card left">
-        <h2>短语板</h2>
-        <div class="row">
-          <div>
-            <label for="pbScene">场景</label>
-            <select id="pbScene">
-              <option value="">全部</option>
-              <option value="medical">medical</option>
-              <option value="travel">travel</option>
-              <option value="family">family</option>
-              <option value="custom">custom</option>
-            </select>
-          </div>
-          <div>
-            <label for="pbAddText">新增短语</label>
-            <input id="pbAddText" placeholder="输入要添加的短语" />
-          </div>
-        </div>
-        <div class="actions">
-          <button id="btnPbLoad" class="ghost">刷新短语板</button>
-          <button id="btnPbAdd">新增短语</button>
-        </div>
-        <pre id="pbOut"></pre>
-      </section>
+      <div class="actions">
+        <button id="btnConfirm" class="secondary" disabled>确认当前候选</button>
+      </div>
 
-      <section class="card right">
-        <h2>服务日志</h2>
-        <p class="muted">用于查看最近一次请求返回，便于调试。</p>
+      <div id="candidateList" class="candidate-wrap"></div>
+      <audio id="speechPlayer" controls></audio>
+
+      <details>
+        <summary>调试日志（高级）</summary>
         <pre id="logOut"></pre>
-      </section>
-    </div>
+      </details>
+    </section>
   </main>
 
   <script>
@@ -363,9 +309,10 @@
       mediaRecorder: null,
       chunks: [],
       recordedBlob: null,
-      lastRecognized: "",
-      lastCandidates: [],
+      micRecording: false,
+      recognizedText: "",
       selectedCandidate: "",
+      ttsAudioUrl: "",
     };
 
     function apiBase() {
@@ -376,129 +323,175 @@
       return $("profileId").value.trim();
     }
 
-    function selectedModel() {
-      return $("asrModel")?.value?.trim()
-        || "iic/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-pytorch";
+    function initVisitorDefaults() {
+      const apiInput = $("apiBase");
+      if (!apiInput.value.trim()) {
+        const isLocalPreview = window.location.protocol === "file:";
+        apiInput.value = isLocalPreview ? "http://127.0.0.1:8000" : window.location.origin;
+      }
+      if (!$("profileId").value.trim()) {
+        $("profileId").value = "guest";
+      }
     }
 
     function log(obj) {
-      const value = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-      $("logOut").textContent = value;
+      $("logOut").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
     }
 
-    function setPre(id, obj) {
-      $(id).textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    function showNotice(type, text) {
+      const n = $("notice");
+      n.className = `banner ${type}`;
+      n.textContent = text;
     }
 
-    async function req(path, options = {}) {
-      const res = await fetch(`${apiBase()}${path}`, options);
-      const text = await res.text();
-      let body = text;
-      try { body = JSON.parse(text); } catch (_) {}
-      if (!res.ok) {
-        log(body);
-        throw new Error(`HTTP ${res.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+    function clearNotice() {
+      const n = $("notice");
+      n.className = "banner";
+      n.textContent = "";
+    }
+
+    function friendlyError(raw) {
+      const msg = String(raw || "");
+      if (msg.includes("can_not_use_instant_voice_cloning")) {
+        return "当前 ElevenLabs 套餐不支持即时克隆。系统可自动降级为普通复述，请继续使用。";
       }
-      log(body);
-      return body;
+      if (msg.includes("quota") || msg.includes("429")) {
+        return "API 额度不足（429）。请检查 OpenAI 账单与限额。";
+      }
+      if (msg.includes("Connection reset") || msg.includes("network") || msg.includes("网络错误")) {
+        return "网络连接不稳定，请稍后重试。";
+      }
+      return msg;
     }
 
-    function renderCandidates(candidates) {
+    function setBusy(busy) {
+      $("btnFilePrimary").disabled = busy;
+      $("btnMicPrimary").disabled = busy && !state.micRecording;
+      $("btnWarmup").disabled = busy;
+    }
+
+    function setMicButtonLabel() {
+      $("btnMicPrimary").textContent = state.micRecording ? "结束并生成复述" : "开始说话";
+    }
+
+    async function playBase64Audio(base64Text, mimeType = "audio/mpeg") {
+      const binary = atob(base64Text);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mimeType });
+      if (state.ttsAudioUrl) URL.revokeObjectURL(state.ttsAudioUrl);
+      state.ttsAudioUrl = URL.createObjectURL(blob);
+      const player = $("speechPlayer");
+      player.src = state.ttsAudioUrl;
+      await player.play();
+    }
+
+    function renderCandidates(candidates = []) {
       const root = $("candidateList");
       root.innerHTML = "";
-      if (!candidates || candidates.length === 0) {
+      if (!candidates.length) {
         $("btnConfirm").disabled = true;
         return;
       }
-      candidates.forEach((c, i) => {
+      candidates.forEach((text, idx) => {
         const wrap = document.createElement("label");
-        wrap.className = "candidate-item";
+        wrap.className = "candidate";
         const radio = document.createElement("input");
         radio.type = "radio";
-        radio.name = "cand";
-        radio.value = c;
-        if (i === 0) {
+        radio.name = "candidate";
+        radio.value = text;
+        if (idx === 0) {
           radio.checked = true;
-          state.selectedCandidate = c;
+          state.selectedCandidate = text;
         }
         radio.addEventListener("change", () => {
           state.selectedCandidate = radio.value;
         });
-        const txt = document.createElement("div");
-        txt.textContent = c;
+        const content = document.createElement("div");
+        content.textContent = text;
         wrap.appendChild(radio);
-        wrap.appendChild(txt);
+        wrap.appendChild(content);
         root.appendChild(wrap);
       });
       $("btnConfirm").disabled = false;
     }
 
-    async function handleTrain() {
-      const phrases = $("trainPhrases").value
-        .split("\n")
-        .map((x) => x.trim())
-        .filter(Boolean);
-      if (!profileId() || phrases.length === 0) {
-        alert("请填写 profile id 并至少输入一条短语。");
-        return;
-      }
-      const scene = $("trainScene").value || null;
-      const body = await req("/train", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_id: profileId(), phrases, scene }),
-      });
-      setPre("trainOut", body);
+    function applyAsrResult(body) {
+      state.recognizedText = body.recognized_text || "";
+      $("recognizedText").value = state.recognizedText;
+      renderCandidates(body.candidates || []);
     }
 
-    async function handleTranscribeMock() {
-      const mockText = $("mockText").value.trim();
-      if (!mockText) {
-        alert("请输入 mock_text。");
-        return;
-      }
-      const body = await req("/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile_id: profileId(),
-          mock_text: mockText,
-          model: selectedModel(),
-          topk: 3,
-        }),
-      });
-      state.lastRecognized = body.recognized_text || "";
-      state.lastCandidates = body.candidates || [];
-      renderCandidates(state.lastCandidates);
-      setPre("asrOut", body);
-    }
-
-    async function handleTranscribeUpload(file) {
-      if (!file) {
-        alert("请先选择音频文件。");
-        return;
-      }
-      $("btnUploadAsr").disabled = true;
-      setPre("asrOut", "正在上传并识别...\n首次真实识别会下载/加载模型，可能需要 1-10 分钟，请勿重复点击。");
-      const form = new FormData();
-      form.append("file", file, file.name || "audio.webm");
-      const base = `${apiBase()}/transcribe-upload?profile_id=${encodeURIComponent(profileId())}&model=${encodeURIComponent(selectedModel())}&topk=3`;
+    async function loadConfig() {
       try {
-        const res = await fetch(base, { method: "POST", body: form });
+        const res = await fetch(`${apiBase()}/config`);
+        const cfg = await res.json();
+        const ready = cfg.online_ready || {};
+        const ok = ready.openai || ready.baidu || ready.elevenlabs;
+        $("cfgStatus").className = `status ${ok ? "ok" : "bad"}`;
+        $("cfgStatus").textContent = ok
+          ? `服务可用：Baidu=${!!ready.baidu}，OpenAI=${!!ready.openai}，ElevenLabs=${!!ready.elevenlabs}`
+          : "服务配置未完成：请设置 BAIDU_API_KEY / BAIDU_SECRET_KEY 或 OPENAI_API_KEY（以及可选 ELEVENLABS_API_KEY）";
+        if (cfg.elevenlabs_clone_status === "disabled_cached" && cfg.elevenlabs_clone_note) {
+          showNotice("warn", `已启用极速模式：${cfg.elevenlabs_clone_note}`);
+        }
+      } catch (e) {
+        $("cfgStatus").className = "status bad";
+        $("cfgStatus").textContent = `配置读取失败：${e.message}`;
+      }
+    }
+
+    async function runOneClickWithFile(file) {
+      if (!file) {
+        alert("请先选择音频文件，或使用麦克风按钮。");
+        return;
+      }
+      clearNotice();
+      setBusy(true);
+      $("recognizedText").value = "极速处理中：识别 -> 复述...";
+
+      const form = new FormData();
+      form.append("profile_id", profileId());
+      form.append("file", file, file.name || "audio.webm");
+      form.append("asr_provider", "auto");
+      form.append("tts_provider", "auto");
+      form.append("allow_fallback", "true");
+      form.append("topk", "1");
+
+      try {
+        const res = await fetch(`${apiBase()}/transcribe-clone-speak`, { method: "POST", body: form });
         const txt = await res.text();
         let body = txt;
         try { body = JSON.parse(txt); } catch (_) {}
+
         if (!res.ok) {
           log(body);
-          throw new Error(`HTTP ${res.status}: ${txt}`);
+          throw new Error(`HTTP ${res.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
         }
+
         log(body);
-        state.lastRecognized = body.recognized_text || "";
-        state.lastCandidates = body.candidates || [];
-        renderCandidates(state.lastCandidates);
-        setPre("asrOut", body);
+        applyAsrResult(body);
+        const tm = body.timing_ms || {};
+        const timingNote = tm.total
+          ? `（总耗时 ${tm.total}ms：识别 ${tm.asr ?? "-"}ms / 克隆 ${tm.clone ?? "-"}ms / 复述 ${tm.tts ?? "-"}ms）`
+          : "";
+        const providerNote = body.asr_provider_used ? `识别通道：${String(body.asr_provider_used).toUpperCase()}。` : "";
+        if (body.note) {
+          showNotice("warn", `${providerNote}${body.note}${timingNote}`);
+        } else if (body.mode === "cloned_elevenlabs") {
+          showNotice("ok", `${providerNote}已完成音色克隆并复述，正在播放。${timingNote}`);
+        } else {
+          showNotice("ok", `${providerNote}复述已生成，正在播放。${timingNote}`);
+        }
+
+        if (body.speech_base64) {
+          await playBase64Audio(body.speech_base64, body.speech_mime || "audio/mpeg");
+        }
+      } catch (e) {
+        showNotice("bad", friendlyError(e.message));
+        throw e;
       } finally {
-        $("btnUploadAsr").disabled = false;
+        setBusy(false);
       }
     }
 
@@ -510,89 +503,121 @@
       state.mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) state.chunks.push(e.data);
       };
-      state.mediaRecorder.onstop = () => {
-        state.recordedBlob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
-        $("btnRecAsr").disabled = false;
-        $("recordDot").classList.remove("live");
-      };
       state.mediaRecorder.start();
-      $("btnStartRec").disabled = true;
-      $("btnStopRec").disabled = false;
-      $("recordDot").classList.add("live");
     }
 
-    function stopRecording() {
-      if (!state.mediaRecorder) return;
-      state.mediaRecorder.stop();
-      state.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
-      $("btnStartRec").disabled = false;
-      $("btnStopRec").disabled = true;
+    async function stopRecordingToBlob() {
+      if (!state.mediaRecorder) {
+        throw new Error("当前没有进行中的录音。");
+      }
+      const rec = state.mediaRecorder;
+      return new Promise((resolve, reject) => {
+        rec.onstop = () => {
+          try {
+            state.recordedBlob = new Blob(state.chunks, { type: rec.mimeType || "audio/webm" });
+            resolve(state.recordedBlob);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        rec.onerror = (e) => reject(new Error(e.error?.message || "录音失败"));
+        rec.stop();
+        rec.stream.getTracks().forEach((t) => t.stop());
+      });
     }
 
-    async function handleConfirm() {
-      if (!state.lastRecognized || !state.selectedCandidate) {
-        alert("请先完成识别并选择候选文本。");
+    async function toggleMicFlow() {
+      if (!state.micRecording) {
+        await startRecording();
+        state.micRecording = true;
+        setMicButtonLabel();
+        showNotice("ok", "录音中，请说话。说完后再次点击按钮结束。");
         return;
       }
-      const body = await req("/confirm", {
+
+      setBusy(true);
+      try {
+        const blob = await stopRecordingToBlob();
+        const file = new File([blob], "yuanyin-mic.webm", { type: blob.type || "audio/webm" });
+        state.micRecording = false;
+        setMicButtonLabel();
+        await runOneClickWithFile(file);
+      } finally {
+        state.micRecording = false;
+        setMicButtonLabel();
+        setBusy(false);
+      }
+    }
+
+    async function confirmCandidate() {
+      const recognized = state.recognizedText;
+      const chosen = state.selectedCandidate || recognized;
+      if (!recognized || !chosen) {
+        alert("请先完成一次识别。");
+        return;
+      }
+      const res = await fetch(`${apiBase()}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile_id: profileId(),
-          recognized: state.lastRecognized,
-          chosen: state.selectedCandidate,
-        }),
+        body: JSON.stringify({ profile_id: profileId(), recognized, chosen }),
       });
-      setPre("asrOut", body);
+      const data = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(data));
+      showNotice("ok", "候选已确认并写入个性化记录。");
+      log(data);
     }
 
-    async function loadPhraseboard() {
-      const scene = $("pbScene").value;
-      const q = scene
-        ? `?profile_id=${encodeURIComponent(profileId())}&scene=${encodeURIComponent(scene)}`
-        : `?profile_id=${encodeURIComponent(profileId())}`;
-      const body = await req(`/phraseboard${q}`);
-      setPre("pbOut", body);
-    }
-
-    async function addPhraseboard() {
-      const text = $("pbAddText").value.trim();
-      if (!text) {
-        alert("请输入短语。");
-        return;
+    async function runWarmup() {
+      clearNotice();
+      setBusy(true);
+      showNotice("ok", "预热中：正在建立与线上语音服务的连接...");
+      try {
+        const res = await fetch(`${apiBase()}/warmup`, { method: "POST" });
+        const txt = await res.text();
+        let body = txt;
+        try { body = JSON.parse(txt); } catch (_) {}
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+        }
+        log(body);
+        const op = body?.providers?.openai || {};
+        const bd = body?.providers?.baidu || {};
+        const el = body?.providers?.elevenlabs || {};
+        showNotice(
+          "ok",
+          `预热完成：Baidu ${bd.ok ? "OK" : "未就绪"} (${bd.latency_ms ?? "-"}ms)，OpenAI ${op.ok ? "OK" : "未就绪"} (${op.latency_ms ?? "-"}ms)，ElevenLabs ${el.ok ? "OK" : "未就绪"} (${el.latency_ms ?? "-"}ms)。`
+        );
+      } catch (e) {
+        showNotice("bad", `预热失败：${friendlyError(e.message)}`);
+      } finally {
+        setBusy(false);
       }
-      const scene = $("pbScene").value || "custom";
-      const body = await req("/phraseboard/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile_id: profileId(),
-          scene,
-          text,
-        }),
+    }
+
+    $("btnMicPrimary").addEventListener("click", () => {
+      toggleMicFlow().catch((e) => {
+        state.micRecording = false;
+        setMicButtonLabel();
+        showNotice("bad", friendlyError(e.message));
       });
-      setPre("pbOut", body);
-    }
+    });
 
-    $("btnTrain").addEventListener("click", () => handleTrain().catch((e) => alert(e.message)));
-    $("btnMockAsr").addEventListener("click", () => handleTranscribeMock().catch((e) => alert(e.message)));
-    $("btnUploadAsr").addEventListener("click", () => {
-      const f = $("audioFile").files?.[0];
-      handleTranscribeUpload(f).catch((e) => alert(e.message));
+    $("btnFilePrimary").addEventListener("click", () => {
+      const file = $("audioFile").files?.[0];
+      runOneClickWithFile(file).catch((e) => showNotice("bad", friendlyError(e.message)));
     });
-    $("btnStartRec").addEventListener("click", () => startRecording().catch((e) => alert(`录音失败: ${e.message}`)));
-    $("btnStopRec").addEventListener("click", stopRecording);
-    $("btnRecAsr").addEventListener("click", () => {
-      if (!state.recordedBlob) {
-        alert("请先录音。");
-        return;
-      }
-      const file = new File([state.recordedBlob], "record.webm", { type: state.recordedBlob.type || "audio/webm" });
-      handleTranscribeUpload(file).catch((e) => alert(e.message));
+
+    $("btnWarmup").addEventListener("click", () => {
+      runWarmup().catch((e) => showNotice("bad", friendlyError(e.message)));
     });
-    $("btnConfirm").addEventListener("click", () => handleConfirm().catch((e) => alert(e.message)));
-    $("btnPbLoad").addEventListener("click", () => loadPhraseboard().catch((e) => alert(e.message)));
-    $("btnPbAdd").addEventListener("click", () => addPhraseboard().catch((e) => alert(e.message)));
+
+    $("btnConfirm").addEventListener("click", () => {
+      confirmCandidate().catch((e) => showNotice("bad", friendlyError(e.message)));
+    });
+
+    initVisitorDefaults();
+    setMicButtonLabel();
+    loadConfig();
   </script>
 </body>
 </html>

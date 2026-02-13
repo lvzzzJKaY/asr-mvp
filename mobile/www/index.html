@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud ASR + Voice Clone</title>
+  <style>
+    :root {
+      --bg1: #f5f8ff;
+      --bg2: #d9f3ff;
+      --ink: #112033;
+      --soft: #51637d;
+      --card: rgba(255, 255, 255, 0.9);
+      --line: rgba(17, 32, 51, 0.12);
+      --brand: #1265ff;
+      --accent: #ff6936;
+      --ok: #16955a;
+      --danger: #d1242f;
+      --shadow: 0 16px 40px rgba(17, 32, 51, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(900px 320px at 0% -10%, rgba(18, 101, 255, 0.2), transparent 70%),
+        radial-gradient(760px 280px at 110% 0%, rgba(255, 105, 54, 0.2), transparent 70%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3.2vw, 40px);
+      letter-spacing: 0.3px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--soft);
+      font-size: 14px;
+    }
+
+    .row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .main {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 2.2fr 1fr;
+    }
+
+    @media (max-width: 1120px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .main { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .row { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      color: var(--soft);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    textarea { resize: vertical; }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(18, 101, 255, 0.6);
+      box-shadow: 0 0 0 3px rgba(18, 101, 255, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: #fff;
+      background: linear-gradient(120deg, var(--brand), #21a0ff);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.accent { background: linear-gradient(120deg, var(--accent), #ff955f); }
+    button.ok { background: linear-gradient(120deg, var(--ok), #31ba76); }
+    button.ghost {
+      color: var(--ink);
+      border: 1px solid var(--line);
+      background: #f2f6ff;
+    }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+
+    .muted { color: var(--soft); font-size: 12px; }
+    .status { font-size: 12px; margin-top: 8px; color: var(--soft); }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--danger); }
+
+    .asr-panel h2 { margin: 0 0 10px; font-size: 20px; }
+    .asr-panel .big {
+      min-height: 300px;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .candidate-list {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .candidate {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      background: #fff;
+    }
+
+    .candidate input { width: auto; margin-top: 3px; }
+
+    pre {
+      margin: 8px 0 0;
+      border-radius: 10px;
+      background: #0d1a2d;
+      color: #d2e6ff;
+      font-size: 12px;
+      padding: 10px;
+      overflow: auto;
+      max-height: 260px;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card hero">
+      <h1>在线 ASR + 音色克隆复述</h1>
+      <p>已移除训练功能。当前为线上 API 模式：上传语音 -> 转文字 -> 候选确认 -> 克隆音色复述。</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div>
+          <label for="apiBase">API Base URL</label>
+          <input id="apiBase" value="http://127.0.0.1:8000" />
+        </div>
+        <div>
+          <label for="profileId">Profile ID</label>
+          <input id="profileId" value="u1" />
+        </div>
+        <div>
+          <label for="asrProvider">ASR Provider</label>
+          <select id="asrProvider">
+            <option value="openai">OpenAI</option>
+          </select>
+        </div>
+        <div>
+          <label for="ttsProvider">TTS Provider</label>
+          <select id="ttsProvider">
+            <option value="elevenlabs">ElevenLabs (克隆音色)</option>
+            <option value="openai">OpenAI TTS</option>
+            <option value="macos">macOS 本地 say</option>
+          </select>
+        </div>
+      </div>
+      <div id="cfgStatus" class="status">正在读取服务配置...</div>
+    </section>
+
+    <section class="main">
+      <section class="card asr-panel">
+        <h2>语音识别与转文字（放大版）</h2>
+        <div class="row" style="grid-template-columns: 1.5fr 1fr;">
+          <div>
+            <label for="audioFile">上传音频文件</label>
+            <input id="audioFile" type="file" accept="audio/*" />
+          </div>
+          <div>
+            <label for="mockText">Mock 文本（调试）</label>
+            <input id="mockText" placeholder="例如：我想预约明天下午门诊" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnUploadAsr">上传并识别</button>
+          <button id="btnMockAsr" class="ghost">Mock 识别</button>
+          <button id="btnStartRec" class="ghost">开始录音</button>
+          <button id="btnStopRec" class="ghost" disabled>停止录音</button>
+          <button id="btnRecAsr" class="ghost" disabled>识别录音</button>
+        </div>
+        <div class="muted">首次调用线上模型可能较慢，请耐心等待。</div>
+
+        <label for="recognizedText" style="margin-top:10px;">识别结果</label>
+        <textarea id="recognizedText" class="big" readonly placeholder="识别文本会显示在这里"></textarea>
+
+        <div class="actions">
+          <button id="btnConfirm" class="ok" disabled>确认当前候选</button>
+        </div>
+        <div id="candidateList" class="candidate-list"></div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 10px;">克隆音色与复述</h2>
+        <label for="cloneName">新音色名称</label>
+        <input id="cloneName" placeholder="例如：my-voice-001" />
+        <label for="cloneDesc" style="margin-top:8px;">音色描述（可选）</label>
+        <input id="cloneDesc" placeholder="例如：中文男声，平静语速" />
+        <label for="cloneFiles" style="margin-top:8px;">音色样本（可多文件）</label>
+        <input id="cloneFiles" type="file" accept="audio/*" multiple />
+        <div class="actions">
+          <button id="btnClone" class="accent">上传样本并克隆音色</button>
+        </div>
+
+        <label for="voiceId" style="margin-top:8px;">克隆音色 ID</label>
+        <input id="voiceId" placeholder="克隆成功后会自动填充" />
+        <label for="speakText" style="margin-top:8px;">复述文本</label>
+        <textarea id="speakText" rows="4" placeholder="默认会用识别结果或候选文本"></textarea>
+        <div class="actions">
+          <button id="btnSpeak">生成复述语音</button>
+        </div>
+        <audio id="speechPlayer" controls style="width:100%; margin-top:8px;"></audio>
+
+        <h2 style="margin:14px 0 8px;">服务日志</h2>
+        <pre id="logOut"></pre>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      mediaRecorder: null,
+      chunks: [],
+      recordedBlob: null,
+      recognizedText: "",
+      selectedCandidate: "",
+      ttsAudioUrl: "",
+    };
+
+    function apiBase() {
+      return $("apiBase").value.trim().replace(/\/+$/, "");
+    }
+
+    function profileId() {
+      return $("profileId").value.trim();
+    }
+
+    function asrProvider() {
+      return $("asrProvider").value.trim();
+    }
+
+    function ttsProvider() {
+      return $("ttsProvider").value.trim();
+    }
+
+    function log(obj) {
+      $("logOut").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    async function req(path, options = {}) {
+      const res = await fetch(`${apiBase()}${path}`, options);
+      const txt = await res.text();
+      let body = txt;
+      try { body = JSON.parse(txt); } catch (_) {}
+      if (!res.ok) {
+        log(body);
+        throw new Error(`HTTP ${res.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+      }
+      log(body);
+      return body;
+    }
+
+    function renderCandidates(candidates = []) {
+      const root = $("candidateList");
+      root.innerHTML = "";
+      if (!candidates.length) {
+        $("btnConfirm").disabled = true;
+        return;
+      }
+      candidates.forEach((text, idx) => {
+        const wrap = document.createElement("label");
+        wrap.className = "candidate";
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "candidate";
+        radio.value = text;
+        if (idx === 0) {
+          radio.checked = true;
+          state.selectedCandidate = text;
+        }
+        radio.addEventListener("change", () => {
+          state.selectedCandidate = radio.value;
+        });
+        const content = document.createElement("div");
+        content.textContent = text;
+        wrap.appendChild(radio);
+        wrap.appendChild(content);
+        root.appendChild(wrap);
+      });
+      $("btnConfirm").disabled = false;
+    }
+
+    function applyAsrResult(body) {
+      state.recognizedText = body.recognized_text || "";
+      $("recognizedText").value = state.recognizedText;
+      renderCandidates(body.candidates || []);
+      if (!$("speakText").value.trim() && state.recognizedText) {
+        $("speakText").value = state.selectedCandidate || state.recognizedText;
+      }
+    }
+
+    async function loadConfig() {
+      try {
+        const cfg = await req("/config");
+        const ready = cfg.online_ready || {};
+        const ok = ready.openai || ready.elevenlabs;
+        $("cfgStatus").className = `status ${ok ? "ok" : "bad"}`;
+        $("cfgStatus").textContent = ok
+          ? `线上配置可用：OpenAI=${!!ready.openai}，ElevenLabs=${!!ready.elevenlabs}`
+          : "线上配置未完成：请先在服务端设置 OPENAI_API_KEY / ELEVENLABS_API_KEY";
+      } catch (e) {
+        $("cfgStatus").className = "status bad";
+        $("cfgStatus").textContent = `读取配置失败：${e.message}`;
+      }
+    }
+
+    async function handleUploadAsr(file) {
+      if (!file) {
+        alert("请先选择音频文件。");
+        return;
+      }
+      $("btnUploadAsr").disabled = true;
+      $("recognizedText").value = "识别中，请稍候...";
+      const form = new FormData();
+      form.append("file", file, file.name || "audio.wav");
+      const url = `${apiBase()}/transcribe-upload?profile_id=${encodeURIComponent(profileId())}&provider=${encodeURIComponent(asrProvider())}&topk=3`;
+      try {
+        const res = await fetch(url, { method: "POST", body: form });
+        const txt = await res.text();
+        let body = txt;
+        try { body = JSON.parse(txt); } catch (_) {}
+        if (!res.ok) {
+          log(body);
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        log(body);
+        applyAsrResult(body);
+      } finally {
+        $("btnUploadAsr").disabled = false;
+      }
+    }
+
+    async function handleMockAsr() {
+      const mock = $("mockText").value.trim();
+      if (!mock) {
+        alert("请输入 mock 文本。");
+        return;
+      }
+      const body = await req("/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile_id: profileId(),
+          mock_text: mock,
+          provider: asrProvider(),
+          topk: 3,
+        }),
+      });
+      applyAsrResult(body);
+    }
+
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.chunks = [];
+      state.recordedBlob = null;
+      state.mediaRecorder = new MediaRecorder(stream);
+      state.mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) state.chunks.push(e.data);
+      };
+      state.mediaRecorder.onstop = () => {
+        state.recordedBlob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
+        $("btnRecAsr").disabled = false;
+      };
+      state.mediaRecorder.start();
+      $("btnStartRec").disabled = true;
+      $("btnStopRec").disabled = false;
+    }
+
+    function stopRecording() {
+      if (!state.mediaRecorder) return;
+      state.mediaRecorder.stop();
+      state.mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+      $("btnStartRec").disabled = false;
+      $("btnStopRec").disabled = true;
+    }
+
+    async function handleConfirm() {
+      const recognized = state.recognizedText;
+      const chosen = state.selectedCandidate || recognized;
+      if (!recognized || !chosen) {
+        alert("请先进行识别。");
+        return;
+      }
+      await req("/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile_id: profileId(),
+          recognized,
+          chosen,
+        }),
+      });
+      if (!$("speakText").value.trim()) {
+        $("speakText").value = chosen;
+      }
+    }
+
+    async function handleCloneVoice() {
+      const name = $("cloneName").value.trim();
+      const files = $("cloneFiles").files;
+      if (!name) {
+        alert("请填写音色名称。");
+        return;
+      }
+      if (!files || files.length === 0) {
+        alert("请至少选择一个音色样本文件。");
+        return;
+      }
+      $("btnClone").disabled = true;
+      try {
+        const form = new FormData();
+        form.append("name", name);
+        form.append("description", $("cloneDesc").value.trim());
+        for (const f of files) form.append("files", f, f.name);
+        const res = await fetch(`${apiBase()}/voice-clone`, { method: "POST", body: form });
+        const txt = await res.text();
+        let body = txt;
+        try { body = JSON.parse(txt); } catch (_) {}
+        if (!res.ok) {
+          log(body);
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        log(body);
+        if (body.voice_id) $("voiceId").value = body.voice_id;
+      } finally {
+        $("btnClone").disabled = false;
+      }
+    }
+
+    function resolveSpeakText() {
+      const v = $("speakText").value.trim();
+      if (v) return v;
+      if (state.selectedCandidate) return state.selectedCandidate;
+      return state.recognizedText || "";
+    }
+
+    async function handleSpeak() {
+      const text = resolveSpeakText();
+      if (!text) {
+        alert("没有可复述的文本。");
+        return;
+      }
+      $("btnSpeak").disabled = true;
+      try {
+        const payload = {
+          text,
+          provider: ttsProvider(),
+          voice_id: $("voiceId").value.trim() || null,
+        };
+        const res = await fetch(`${apiBase()}/speak`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(`HTTP ${res.status}: ${msg}`);
+        }
+        const blob = await res.blob();
+        if (state.ttsAudioUrl) URL.revokeObjectURL(state.ttsAudioUrl);
+        state.ttsAudioUrl = URL.createObjectURL(blob);
+        const player = $("speechPlayer");
+        player.src = state.ttsAudioUrl;
+        await player.play();
+      } finally {
+        $("btnSpeak").disabled = false;
+      }
+    }
+
+    $("btnUploadAsr").addEventListener("click", () => {
+      const f = $("audioFile").files?.[0];
+      handleUploadAsr(f).catch((e) => alert(e.message));
+    });
+    $("btnMockAsr").addEventListener("click", () => handleMockAsr().catch((e) => alert(e.message)));
+    $("btnStartRec").addEventListener("click", () => startRecording().catch((e) => alert(`录音失败: ${e.message}`)));
+    $("btnStopRec").addEventListener("click", stopRecording);
+    $("btnRecAsr").addEventListener("click", () => {
+      if (!state.recordedBlob) {
+        alert("请先完成录音。");
+        return;
+      }
+      const file = new File([state.recordedBlob], "record.webm", { type: state.recordedBlob.type || "audio/webm" });
+      handleUploadAsr(file).catch((e) => alert(e.message));
+    });
+    $("btnConfirm").addEventListener("click", () => handleConfirm().catch((e) => alert(e.message)));
+    $("btnClone").addEventListener("click", () => handleCloneVoice().catch((e) => alert(e.message)));
+    $("btnSpeak").addEventListener("click", () => handleSpeak().catch((e) => alert(e.message)));
+
+    loadConfig();
+  </script>
+</body>
+</html>
