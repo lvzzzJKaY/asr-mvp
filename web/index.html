@@ -313,6 +313,7 @@
       recognizedText: "",
       selectedCandidate: "",
       ttsAudioUrl: "",
+      asrProviderDefault: "best",
     };
 
     function apiBase() {
@@ -428,9 +429,10 @@
         const cfg = await res.json();
         const ready = cfg.online_ready || {};
         const ok = ready.openai || ready.baidu || ready.elevenlabs;
+        state.asrProviderDefault = String(cfg.asr_provider_default || "best").toLowerCase();
         $("cfgStatus").className = `status ${ok ? "ok" : "bad"}`;
         $("cfgStatus").textContent = ok
-          ? `服务可用：Baidu=${!!ready.baidu}，OpenAI=${!!ready.openai}，ElevenLabs=${!!ready.elevenlabs}`
+          ? `服务可用：Baidu=${!!ready.baidu}，OpenAI=${!!ready.openai}，ElevenLabs=${!!ready.elevenlabs}。ASR默认策略=${state.asrProviderDefault.toUpperCase()}`
           : "服务配置未完成：请设置 BAIDU_API_KEY / BAIDU_SECRET_KEY 或 OPENAI_API_KEY（以及可选 ELEVENLABS_API_KEY）";
         if (cfg.elevenlabs_clone_status === "disabled_cached" && cfg.elevenlabs_clone_note) {
           showNotice("warn", `已启用极速模式：${cfg.elevenlabs_clone_note}`);
@@ -453,7 +455,7 @@
       const form = new FormData();
       form.append("profile_id", profileId());
       form.append("file", file, file.name || "audio.webm");
-      form.append("asr_provider", "auto");
+      form.append("asr_provider", state.asrProviderDefault || "best");
       form.append("tts_provider", "auto");
       form.append("allow_fallback", "true");
       form.append("topk", "1");

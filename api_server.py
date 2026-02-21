@@ -9,7 +9,7 @@ import subprocess
 import time
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -23,7 +23,7 @@ from app import load_profile, now_iso, normalize_text, save_profile
 
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com").rstrip("/")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_ASR_MODEL = os.getenv("OPENAI_ASR_MODEL", "whisper-1")
+OPENAI_ASR_MODEL = os.getenv("OPENAI_ASR_MODEL", "gpt-4o-transcribe")
 OPENAI_TTS_MODEL = os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts")
 OPENAI_TTS_VOICE = os.getenv("OPENAI_TTS_VOICE", "alloy")
 
@@ -35,7 +35,7 @@ BAIDU_DEV_PID = int(os.getenv("BAIDU_DEV_PID", "80001"))
 BAIDU_CUID = os.getenv("BAIDU_CUID", "yuanyin_web")
 BAIDU_OAUTH_URL = "https://aip.baidubce.com/oauth/2.0/token"
 
-ASR_PROVIDER_DEFAULT = os.getenv("ASR_PROVIDER_DEFAULT", "auto").strip().lower()
+ASR_PROVIDER_DEFAULT = os.getenv("ASR_PROVIDER_DEFAULT", "best").strip().lower()
 ASR_LANGUAGE_HINT = os.getenv("ASR_LANGUAGE_HINT", "zh").strip().lower()
 
 ELEVENLABS_BASE_URL = os.getenv("ELEVENLABS_BASE_URL", "https://api.elevenlabs.io").rstrip("/")
@@ -61,6 +61,7 @@ BAIDU_TOKEN_EXPIRES_AT = 0.0
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_INDEX = BASE_DIR / "web" / "index.html"
+VOICE_CACHE_PATH = BASE_DIR / "profiles" / "_voice_cache.json"
 
 
 app = FastAPI(
@@ -78,10 +79,35 @@ app.add_middleware(
 )
 
 
+def load_voice_cache() -> Dict[str, str]:
+    if not VOICE_CACHE_PATH.exists():
+        return {}
+    try:
+        raw = json.loads(VOICE_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+    result: Dict[str, str] = {}
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            k = normalize_text(str(key))
+            v = normalize_text(str(value))
+            if k and v:
+                result[k] = v
+    return result
+
+
+def save_voice_cache(cache: Dict[str, str]) -> None:
+    VOICE_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    VOICE_CACHE_PATH.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+VOICE_CACHE = load_voice_cache()
+
+
 class TranscribeRequest(BaseModel):
     profile_id: str = Field(..., min_length=1)
     mock_text: Optional[str] = None
-    provider: str = "auto"
+    provider: str = "best"
     topk: int = Field(3, ge=1, le=10)
 
 
@@ -266,6 +292,72 @@ def suggest_candidates_by_history(text: str, profile_id: str, topk: int) -> List
     return candidates[:topk] if candidates else []
 
 
+def append_unique(items: List[str], text: str, cap: int) -> List[str]:
+    value = normalize_text(text)
+    if not value:
+        return items
+    if value not in items:
+        items.append(value)
+    return items[:cap]
+
+
+def cjk_count(text: str) -> int:
+    return sum(1 for ch in text if "\u4e00" <= ch <= "\u9fff")
+
+
+def history_match_score(text: str, profile_id: str) -> float:
+    pid = normalize_text(profile_id)
+    if not pid:
+        return 0.0
+    try:
+        profile = load_profile(pid)
+    except Exception:  # noqa: BLE001
+        return 0.0
+    src = normalize_text(text)
+    if not src:
+        return 0.0
+    best = 0.0
+    for item in profile.corrections[-150:]:
+        chosen = normalize_text(item.get("chosen", ""))
+        if not chosen:
+            continue
+        score = SequenceMatcher(None, src, chosen).ratio()
+        if src in chosen or chosen in src:
+            score += 0.2
+        if score > best:
+            best = score
+    return best
+
+
+def rank_asr_candidate(text: str, profile_id: str) -> float:
+    src = normalize_text(text)
+    if not src:
+        return -1.0
+    length_score = min(len(src), 48) / 48.0
+    cjk_ratio = cjk_count(src) / max(1, len(src))
+    hist_score = history_match_score(src, profile_id)
+    return hist_score * 1.5 + cjk_ratio * 0.5 + length_score * 0.2
+
+
+def read_cached_voice(profile_id: str) -> str:
+    key = normalize_text(profile_id)
+    if not key:
+        return ""
+    return normalize_text(VOICE_CACHE.get(key, ""))
+
+
+def write_cached_voice(profile_id: str, voice_id: str) -> None:
+    key = normalize_text(profile_id)
+    value = normalize_text(voice_id)
+    if not key:
+        return
+    if value:
+        VOICE_CACHE[key] = value
+    else:
+        VOICE_CACHE.pop(key, None)
+    save_voice_cache(VOICE_CACHE)
+
+
 def asr_openai(file_bytes: bytes, filename: str, content_type: str) -> str:
     require_key("OPENAI_API_KEY", OPENAI_API_KEY)
     url = f"{OPENAI_BASE_URL}/v1/audio/transcriptions"
@@ -333,8 +425,8 @@ def asr_baidu(file_bytes: bytes, filename: str, content_type: str) -> str:
 
 
 def resolve_asr_provider(raw: str) -> str:
-    provider = (raw or ASR_PROVIDER_DEFAULT or "auto").strip().lower()
-    if provider not in {"auto", "openai", "baidu"}:
+    provider = (raw or ASR_PROVIDER_DEFAULT or "best").strip().lower()
+    if provider not in {"auto", "openai", "baidu", "best"}:
         raise HTTPException(status_code=400, detail=f"不支持的 ASR provider: {provider}")
     return provider
 
@@ -357,13 +449,73 @@ def asr_auto(file_bytes: bytes, filename: str, content_type: str) -> tuple[str, 
     raise HTTPException(status_code=502, detail=f"自动 ASR 失败: {'; '.join(errors) or '未知错误'}")
 
 
-def asr_by_provider(provider: str, file_bytes: bytes, filename: str, content_type: str) -> tuple[str, str]:
+def asr_best(
+    file_bytes: bytes,
+    filename: str,
+    content_type: str,
+    profile_id: str,
+) -> tuple[str, str, List[Dict[str, object]]]:
+    results: List[Tuple[str, str]] = []
+    errors: List[str] = []
+
+    if BAIDU_API_KEY and BAIDU_SECRET_KEY:
+        try:
+            results.append(("baidu", asr_baidu(file_bytes, filename, content_type)))
+        except HTTPException as exc:
+            errors.append(f"baidu:{exc.status_code}")
+    if OPENAI_API_KEY:
+        try:
+            results.append(("openai", asr_openai(file_bytes, filename, content_type)))
+        except HTTPException as exc:
+            errors.append(f"openai:{exc.status_code}")
+
+    if not results:
+        if not BAIDU_API_KEY and not OPENAI_API_KEY:
+            raise HTTPException(status_code=500, detail="缺少 ASR API 配置: BAIDU_API_KEY 或 OPENAI_API_KEY")
+        raise HTTPException(status_code=502, detail=f"BEST ASR 失败: {'; '.join(errors) or '未知错误'}")
+
+    ranked = sorted(
+        [
+            (provider_name, text, rank_asr_candidate(text, profile_id))
+            for provider_name, text in results
+            if normalize_text(text)
+        ],
+        key=lambda x: x[2],
+        reverse=True,
+    )
+    if not ranked:
+        raise HTTPException(status_code=500, detail="ASR 返回空文本")
+
+    chosen_provider, chosen_text, _ = ranked[0]
+    alternatives = [
+        {
+            "provider": provider_name,
+            "text": text,
+            "score": round(float(score), 4),
+        }
+        for provider_name, text, score in ranked
+    ]
+    return chosen_text, f"best:{chosen_provider}", alternatives
+
+
+def asr_by_provider(
+    provider: str,
+    file_bytes: bytes,
+    filename: str,
+    content_type: str,
+    profile_id: str,
+) -> tuple[str, str, List[Dict[str, object]]]:
     chosen = resolve_asr_provider(provider)
     if chosen == "openai":
-        return asr_openai(file_bytes, filename, content_type), "openai"
+        text = asr_openai(file_bytes, filename, content_type)
+        return text, "openai", [{"provider": "openai", "text": text, "score": 1.0}]
     if chosen == "baidu":
-        return asr_baidu(file_bytes, filename, content_type), "baidu"
-    return asr_auto(file_bytes, filename, content_type)
+        text = asr_baidu(file_bytes, filename, content_type)
+        return text, "baidu", [{"provider": "baidu", "text": text, "score": 1.0}]
+    if chosen == "best":
+        return asr_best(file_bytes, filename, content_type, profile_id)
+    text, used = asr_auto(file_bytes, filename, content_type)
+    return text, used, [{"provider": used, "text": text, "score": 1.0}]
 
 
 def clone_voice_elevenlabs_parts(
@@ -534,7 +686,7 @@ def config() -> Dict[str, object]:
     try:
         asr_default = resolve_asr_provider(ASR_PROVIDER_DEFAULT)
     except HTTPException:
-        asr_default = "auto"
+        asr_default = "best"
     clone_status = "ready"
     if ELEVENLABS_CLONE_DISABLED_REASON:
         clone_status = "disabled_cached"
@@ -608,13 +760,24 @@ async def transcribe_upload(
     payload = await file.read()
     if not payload:
         raise HTTPException(status_code=400, detail="上传文件为空")
-    text, provider_used = asr_by_provider(provider, payload, file.filename, file.content_type or "")
+    text, provider_used, asr_alternatives = asr_by_provider(
+        provider,
+        payload,
+        file.filename,
+        file.content_type or "",
+        profile_id,
+    )
     candidates = suggest_candidates_by_history(text, profile_id, topk)
+    for alt in asr_alternatives:
+        if len(candidates) >= max(3, topk):
+            break
+        candidates = append_unique(candidates, str(alt.get("text", "")), cap=max(3, topk))
     return {
         "profile_id": profile_id,
         "provider": provider_used,
         "recognized_text": text,
         "candidates": candidates if candidates else [text],
+        "asr_alternatives": asr_alternatives,
         "timestamp": now_iso(),
     }
 
@@ -652,9 +815,17 @@ async def transcribe_clone_speak(
         raise HTTPException(status_code=400, detail="上传文件为空")
 
     asr_start = time.perf_counter()
-    text, asr_provider_used = asr_by_provider(asr_provider, payload, file.filename, file.content_type or "")
+    text, asr_provider_used, asr_alternatives = asr_by_provider(
+        asr_provider,
+        payload,
+        file.filename,
+        file.content_type or "",
+        profile_id,
+    )
     asr_ms = int((time.perf_counter() - asr_start) * 1000)
     candidates = suggest_candidates_by_history(text, profile_id, topk)
+    for alt in asr_alternatives:
+        candidates = append_unique(candidates, str(alt.get("text", "")), cap=max(3, topk))
     selected_text = candidates[0] if candidates else text
 
     tts_provider = tts_provider.lower().strip()
@@ -664,6 +835,7 @@ async def transcribe_clone_speak(
     base_result = {
         "profile_id": profile_id,
         "asr_provider_used": asr_provider_used,
+        "asr_alternatives": asr_alternatives,
         "recognized_text": text,
         "candidates": candidates if candidates else [text],
         "selected_text": selected_text,
@@ -694,6 +866,25 @@ async def transcribe_clone_speak(
             note=f"已启用极速模式：跳过克隆，直接普通复述。原因: {ELEVENLABS_CLONE_DISABLED_REASON}",
         )
 
+    cached_voice_id = read_cached_voice(profile_id)
+    if cached_voice_id:
+        try:
+            tts_start = time.perf_counter()
+            speech_bytes = tts_elevenlabs_audio(text=selected_text, voice_id=cached_voice_id, model_id=None)
+            tts_ms = int((time.perf_counter() - tts_start) * 1000)
+            return {
+                **base_result,
+                "mode": "reuse_cloned_elevenlabs",
+                "note": "已复用历史克隆音色，跳过重复克隆。",
+                "clone_name": "",
+                "voice_id": cached_voice_id,
+                "speech_mime": "audio/mpeg",
+                "speech_base64": base64.b64encode(speech_bytes).decode("ascii"),
+                "timing_ms": timing_dict(),
+            }
+        except HTTPException:
+            write_cached_voice(profile_id, "")
+
     normalized_name = normalize_text(clone_name)
     final_name = normalized_name or f"asr-echo-{profile_id}-{int(time.time())}"
     try:
@@ -716,6 +907,7 @@ async def transcribe_clone_speak(
         voice_id = normalize_text(str(clone_result.get("voice_id", "")))
         if not voice_id:
             raise HTTPException(status_code=500, detail="克隆成功但未返回 voice_id")
+        write_cached_voice(profile_id, voice_id)
         tts_start = time.perf_counter()
         speech_bytes = tts_elevenlabs_audio(text=selected_text, voice_id=voice_id, model_id=None)
         tts_ms = int((time.perf_counter() - tts_start) * 1000)

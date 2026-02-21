@@ -2,7 +2,7 @@
 
 ## 架构
 
-- ASR：Baidu（中文优先）+ OpenAI（兜底）
+- ASR：`best` 模式（Baidu + OpenAI 双引擎择优）
 - TTS/克隆：ElevenLabs（可选）+ OpenAI（兜底）
 - 后端：FastAPI (`api_server.py`)
 
@@ -12,9 +12,10 @@
 
 - `BAIDU_API_KEY`
 - `BAIDU_SECRET_KEY`
-- `ASR_PROVIDER_DEFAULT`：`auto` / `baidu` / `openai`
+- `ASR_PROVIDER_DEFAULT`：`best` / `auto` / `baidu` / `openai`
 - `ASR_LANGUAGE_HINT`：默认 `zh`
 - `OPENAI_API_KEY`（建议作为兜底）
+- `OPENAI_ASR_MODEL`（推荐 `gpt-4o-transcribe`）
 - `ELEVENLABS_API_KEY`（可选）
 
 ## 2) Docker 运行
@@ -50,4 +51,5 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 
 1. 如果是浏览器录音（webm），Baidu 可能不支持该格式，系统会自动兜底 OpenAI。  
 2. ElevenLabs 无 Instant Voice Cloning 权限时，会自动降级普通复述。  
-3. 建议先调用一次 `POST /warmup`，减少首个请求延迟。  
+3. `best` 模式追求准确率，耗时可能高于 `auto`。  
+4. 建议先调用一次 `POST /warmup`，减少首个请求延迟。  

@@ -2,7 +2,7 @@
 
 原音是一个面向中文场景的语音复述产品原型：
 - 主流程：语音输入 -> 文本识别 ->（可选克隆音色）-> 语音复述
-- ASR：Baidu 中文优先，OpenAI 自动兜底
+- ASR：`best` 双引擎模式（Baidu + OpenAI 并行策略择优）
 - TTS：ElevenLabs（克隆音色）/ OpenAI（普通复述）
 
 ## 当前能力
@@ -13,6 +13,7 @@
 - 候选确认回写（持续优化候选）
 - 首次调用预热（显示 Baidu/OpenAI/ElevenLabs 可用性和延迟）
 - 分段耗时展示（识别/克隆/复述/总耗时）
+- 克隆音色缓存复用（同一 `Profile ID` 后续请求跳过重复克隆）
 
 ## 本地启动
 
@@ -35,13 +36,13 @@ uvicorn api_server:app --host 127.0.0.1 --port 8000
 
 ## 必填配置
 
-至少填一组 ASR：
+为了“最高准确率”建议同时填写两组 ASR（`best` 模式会自动择优）：
 
-1. 中文优先（推荐）
+1. 中文优先
 - `BAIDU_API_KEY`
 - `BAIDU_SECRET_KEY`
 
-2. 兜底（可选但建议）
+2. 高鲁棒兜底
 - `OPENAI_API_KEY`
 
 语音复述相关：
@@ -49,10 +50,11 @@ uvicorn api_server:app --host 127.0.0.1 --port 8000
 
 ## 核心环境变量
 
-- `ASR_PROVIDER_DEFAULT=auto`（`auto` / `baidu` / `openai`）
+- `ASR_PROVIDER_DEFAULT=best`（`best` / `auto` / `baidu` / `openai`）
 - `ASR_LANGUAGE_HINT=zh`
 - `BAIDU_DEV_PID=80001`
 - `BAIDU_ASR_URL=https://vop.baidu.com/pro_api`
+- `OPENAI_ASR_MODEL=gpt-4o-transcribe`
 
 完整变量见 `/Users/zzz/Desktop/Python/asr-mvp/.env.example`。
 
@@ -60,7 +62,8 @@ uvicorn api_server:app --host 127.0.0.1 --port 8000
 
 1. 识别慢
 - 先点页面里的“首次调用预热”
-- 使用 `ASR_PROVIDER_DEFAULT=auto`，优先走 Baidu
+- 如果你追求速度优先，可改为 `ASR_PROVIDER_DEFAULT=auto`
+- 如果你追求准确率优先，保持 `ASR_PROVIDER_DEFAULT=best`
 
 2. ElevenLabs 报 instant voice cloning 权限不足
 - 这是账号套餐限制，不是代码问题
